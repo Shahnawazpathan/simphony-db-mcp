@@ -41,6 +41,23 @@ workspace needs an authenticated hosted MCP endpoint or another supported way
 to run a local server with private database connectivity. The public repository
 contains code only and does not authorize database access.
 
+### Database credentials
+
+Use the reporting login issued to you by your DBA. Store the password in a
+[PostgreSQL password file](https://www.postgresql.org/docs/18/libpq-pgpass.html)
+that only your account can read. Each entry uses this format:
+
+    HOST:PORT:DATABASE:REPORTING_USER:PASSWORD
+
+In your private MCP client configuration, set `SIMPHONY_READ_DSN` to a
+connection string with your own values and absolute file paths:
+
+    host=db.example.com port=5432 dbname=your_database user=your_reporting_user sslmode=verify-full sslrootcert='/path/to/trusted-cert.pem' passfile='/path/to/pgpass'
+
+On Windows, forward slashes work in these paths. Get the trusted certificate
+from your DBA. Each recipient needs their own reporting login and a network route
+authorized to reach PostgreSQL.
+
 ## Query behavior
 
 One SELECT per call, in a read-only transaction. The MCP server does not cap
