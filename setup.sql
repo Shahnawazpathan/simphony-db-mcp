@@ -1,21 +1,37 @@
--- Run as a DBA in simphony-db. Provision a separate LOGIN per person.
+-- Run as a DBA while connected to the intended database.
+-- This changes privileges only. It creates no tables, views, or schemas.
 BEGIN;
-CREATE ROLE simphony_mcp_read NOLOGIN;
-CREATE SCHEMA mcp_reporting;
-REVOKE ALL ON SCHEMA mcp_reporting FROM PUBLIC;
-CREATE VIEW mcp_reporting.daily_sales AS
-SELECT business_date, location_id, location_name, status,
-       journal_checks, sales_net, sales_gross, financial_verified_at
-FROM public.grn_salesfastday;
-CREATE VIEW mcp_reporting.portal_run_status AS
-SELECT from_date, to_date, status, row_count, started_at, finished_at
-FROM public.self_service_portal_invoice_portalinvoicerun;
-CREATE VIEW mcp_reporting.inventory_run_status AS
-SELECT kind, from_date, to_date, status, document_count, line_count,
-       expected_count, incomplete_count, skipped_count, started_at, finished_at
-FROM public.grn_scraperun;
-GRANT CONNECT ON DATABASE "simphony-db" TO simphony_mcp_read;
-GRANT USAGE ON SCHEMA mcp_reporting TO simphony_mcp_read;
-GRANT SELECT ON ALL TABLES IN SCHEMA mcp_reporting TO simphony_mcp_read;
+DO $permissions$
+DECLARE
+    tbl record;
+    columns_to_read text;
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'simphony_mcp_read') THEN
+        CREATE ROLE simphony_mcp_read NOLOGIN;
+    END IF;
+    IF EXISTS (SELECT FROM pg_namespace WHERE nspname = 'mcp_reporting') THEN
+        REVOKE ALL ON SCHEMA mcp_reporting FROM simphony_mcp_read;
+        REVOKE ALL ON ALL TABLES IN SCHEMA mcp_reporting FROM simphony_mcp_read;
+    END IF;
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO simphony_mcp_read', current_database());
+    FOR tbl IN
+        SELECT c.oid, n.nspname, c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind IN ('r', 'p')
+          AND left(n.nspname, 3) <> 'pg_'
+          AND n.nspname NOT IN ('information_schema', 'mcp_reporting')
+    LOOP
+        SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
+        INTO columns_to_read
+        FROM pg_attribute
+        WHERE attrelid = tbl.oid AND attnum > 0 AND NOT attisdropped
+          AND attname !~* 'password|secret|token|api_?key|credential|session_key|session_data|cookie';
+        IF columns_to_read IS NOT NULL THEN
+            EXECUTE format('GRANT USAGE ON SCHEMA %I TO simphony_mcp_read', tbl.nspname);
+            EXECUTE format('GRANT SELECT (%s) ON TABLE %I.%I TO simphony_mcp_read',
+                           columns_to_read, tbl.nspname, tbl.relname);
+        END IF;
+    END LOOP;
+END
+$permissions$;
 COMMIT;
-
