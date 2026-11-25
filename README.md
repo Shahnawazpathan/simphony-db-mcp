@@ -7,7 +7,7 @@ initial reporting scope.
 
 ## Install
 
-1. Your DBA runs setup.sql once in simphony-db, creates an individual login with
+1. The reporting schema is installed on the KOJ VPS. For a fresh database, run setup.sql once. Your DBA creates an individual login with
    no privileges beyond membership in simphony_mcp_read, and provides access via
    an approved private connection or an existing narrow IP firewall rule. Review
    effective grants inherited from PUBLIC before issuing logins. Revoke the
@@ -43,4 +43,5 @@ Example SQL:
     WHERE status = 'failed'
     GROUP BY business_date
     ORDER BY business_date DESC;
+
 
