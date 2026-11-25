@@ -58,8 +58,6 @@ class ReadOnly(Visitor):
 
 
 def validate(sql):
-    if len(sql) > 12000:
-        raise ValueError("Query exceeds 12,000 characters")
     statements = parse_sql(sql)
     if len(statements) != 1 or not isinstance(statements[0].stmt, ast.SelectStmt):
         raise ValueError("Provide one SELECT statement")
@@ -69,11 +67,8 @@ def validate(sql):
 
 
 def fetch(query, params=None, tables=()):
-    with psycopg.connect(os.environ["SIMPHONY_READ_DSN"], connect_timeout=5,
-                         row_factory=dict_row) as conn:
+    with psycopg.connect(os.environ["SIMPHONY_READ_DSN"], row_factory=dict_row) as conn:
         conn.execute("SET TRANSACTION READ ONLY")
-        conn.execute("SET LOCAL statement_timeout = '10s'")
-        conn.execute("SET LOCAL lock_timeout = '2s'")
         conn.execute("SET LOCAL search_path = pg_catalog")
         role = conn.execute("""
             SELECT pg_has_role(current_user, 'simphony_mcp_read', 'USAGE')
@@ -91,8 +86,7 @@ def fetch(query, params=None, tables=()):
                 raise ValueError(f"No read access to existing table {schema}.{table}")
         with conn.cursor(name="report_cursor") as cur:
             cur.execute(query, params)
-            rows = cur.fetchmany(201)
-        return {"rows": rows[:200], "truncated": len(rows) > 200}
+            return {"rows": cur.fetchall(), "truncated": False}
 
 
 @server.tool()

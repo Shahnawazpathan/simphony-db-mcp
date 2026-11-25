@@ -41,10 +41,11 @@ workspace needs an authenticated hosted MCP endpoint or another supported way
 to run a local server with private database connectivity. The public repository
 contains code only and does not authorize database access.
 
-## Query limits
+## Query behavior
 
-One SELECT per call. Transactions are read-only, statements time out after 10
-seconds, and responses return at most 200 rows. Use schema-qualified table names
+One SELECT per call, in a read-only transaction. The MCP server does not cap
+SQL length, execution time, or returned rows. PostgreSQL and client limits still
+apply. Use SQL filters or aggregation when you only need a summary. Use schema-qualified table names
 and qualify supported functions with `pg_catalog`. The setup grants access to
 existing application tables and omits columns whose names indicate passwords,
 tokens, secrets, or session credentials. Use `describe_table` to see available
