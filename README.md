@@ -1,10 +1,9 @@
 # Simphony database MCP
 
-Run read-only sales and portal run audits from a local MCP client. The server
+Run read-only sales, inventory, and portal run audits from a local MCP client. The server
 provides two tools, list_reports and query_reports. It has no SSH or shell tool.
 Raw invoices, receipts, customer data, and unrestricted tables are outside the
-initial reporting scope. To audit inventory, a DBA can add a reviewed inventory
-view and grant SELECT on it.
+initial reporting scope.
 
 ## Install
 
@@ -44,3 +43,4 @@ Example SQL:
     WHERE status = 'failed'
     GROUP BY business_date
     ORDER BY business_date DESC;
+

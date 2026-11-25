@@ -10,7 +10,12 @@ FROM public.grn_salesfastday;
 CREATE VIEW mcp_reporting.portal_run_status AS
 SELECT from_date, to_date, status, row_count, started_at, finished_at
 FROM public.self_service_portal_invoice_portalinvoicerun;
+CREATE VIEW mcp_reporting.inventory_run_status AS
+SELECT kind, from_date, to_date, status, document_count, line_count,
+       expected_count, incomplete_count, skipped_count, started_at, finished_at
+FROM public.grn_scraperun;
 GRANT CONNECT ON DATABASE "simphony-db" TO simphony_mcp_read;
 GRANT USAGE ON SCHEMA mcp_reporting TO simphony_mcp_read;
 GRANT SELECT ON ALL TABLES IN SCHEMA mcp_reporting TO simphony_mcp_read;
 COMMIT;
+
